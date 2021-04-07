@@ -1,4 +1,7 @@
-
+------------------------------
+-- Iñaki Etchegaray
+-- 240172
+------------------------------
 {-# LANGUAGE TupleSections #-}
 module Tarea0 where
     -- e ::= x | l | x := e | e # e
@@ -6,6 +9,7 @@ module Tarea0 where
             | L Integer -- Literal              -- l
             | (:=) String Exp -- Asignacion -- x := e
             | (:+) Exp Exp                      -- El resto: e # e
+            | (:-) Exp Exp   
             | (:*) Exp Exp
             | (:/) Exp Exp
             | (:%) Exp Exp
@@ -58,16 +62,19 @@ module Tarea0 where
     eval m (x := ex) = (write (primPar(eval m ex)) x (segPar(eval m ex)), segPar(eval m ex))
     -- M, e1 O e2 ↓ M'', m # n : regla Bin
     -- En cada caso de operacion matematica, para mantener las premisas de la regla: M, e1 ↓ M', m | M', e2 ↓ M'', n,
-    -- debemos conseguir la memoria de evaluar la ex2 luego de evaluar la ex1. Luego esta el numero resultado de sumar con el m original.
+    -- debemos conseguir la memoria de evaluar la ex2 luego de evaluar la ex1. Luego esta el numero resultado de sumar con el m nuevo (m'').
     -- El resultado es (M'', m O n) que es el resultado de la regla bin.
-    -- SUMA
-    eval m (ex1 :+ ex2) = (primPar(eval (primPar(eval m ex1)) ex2), segPar(eval m ex1) + segPar(eval m ex2))
-    -- PRODUCTO
-    eval m (ex1 :* ex2) = (primPar(eval (primPar(eval m ex1)) ex2), segPar(eval m ex1) * segPar(eval m ex2))
-    -- DIVISION
-    eval m (ex1 :/ ex2) = (primPar(eval (primPar(eval m ex1)) ex2), div (segPar(eval m ex1)) (segPar(eval m ex2)))
-    -- MODULO
-    eval m (ex1 :% ex2) = (primPar(eval (primPar(eval m ex1)) ex2), mod (segPar(eval m ex1)) (segPar(eval m ex2)))
+    -- primPar(eval (primPar(eval m ex1)) ex2) = M''
+    -- SUMA                                  M''                                   x donde x = n + m en M''                                                               
+    eval m (ex1 :+ ex2) = (primPar(eval (primPar(eval m ex1)) ex2), segPar(eval (primPar(eval (primPar(eval m ex1)) ex2)) ex1) + segPar(eval (primPar(eval (primPar(eval m ex1)) ex2)) ex2))
+    -- RESTA                                 M''                                   x donde x = n - m en M''                        
+    eval m (ex1 :- ex2) = (primPar(eval (primPar(eval m ex1)) ex2), segPar(eval (primPar(eval (primPar(eval m ex1)) ex2)) ex1) - segPar(eval (primPar(eval (primPar(eval m ex1)) ex2)) ex2))
+    -- PRODUCTO                              M''                                   x donde x = n * m en M''             
+    eval m (ex1 :* ex2) = (primPar(eval (primPar(eval m ex1)) ex2), segPar(eval (primPar(eval (primPar(eval m ex1)) ex2)) ex1) * segPar(eval (primPar(eval (primPar(eval m ex1)) ex2)) ex2))
+    -- DIVISION                              M''                                   x donde x = n / m en M''             
+    eval m (ex1 :/ ex2) = (primPar(eval (primPar(eval m ex1)) ex2), div (segPar(eval (primPar(eval (primPar(eval m ex1)) ex2)) ex1)) (segPar(eval (primPar(eval (primPar(eval m ex1)) ex2)) ex2)))
+    -- MODULO                                M''                                   x donde x = n % m en M''             
+    eval m (ex1 :% ex2) = (primPar(eval (primPar(eval m ex1)) ex2), mod (segPar(eval (primPar(eval (primPar(eval m ex1)) ex2)) ex1)) (segPar(eval (primPar(eval (primPar(eval m ex1)) ex2)) ex2)))
 
 
 
