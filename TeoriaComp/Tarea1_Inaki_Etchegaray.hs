@@ -19,6 +19,7 @@ module Tarea1 where
         |   Apl Expr [Expr]     -- Expresion Aplicacion
         |   Case Expr [Rama]    -- Expresion Case
         |   Rec Expr            -- Expresion Recursiva
+        deriving Show
 
     -- 2) Definir un predicado que caracterice valores debiles.
     -- Un valor es una expresion que no es evaluable, ya terminamos de evaluarla.
@@ -28,7 +29,7 @@ module Tarea1 where
     -- 
     esValorDebil :: Expr -> Bool 
     esValorDebil (C i) = True
-    esValorDebil (Apl (C etc) et) = True --TODO
+    esValorDebil (Apl (C i) et) = True --TODO
     esValorDebil (Lam vt e) = True
     esValorDebil e = False
 
@@ -46,10 +47,10 @@ module Tarea1 where
                     | is == i = e
                     | otherwise = Var i
 
-    --TODO
     (-.) :: Sigma -> [Id] -> Sigma
     (-.) [] vt = []
-    (-.) (s:sigmap) vt = []
+    (-.) s [] = s
+    (-.) s (v:vt) = findAndRemoveId s v -. vt
 
     sustitucion :: Expr -> Sigma -> Expr
     sustitucion (Var i) s = lkup s i
@@ -63,5 +64,59 @@ module Tarea1 where
     sustitucionRama (i, (xt,e)) s = (i, (xt, sustitucion e (s -. xt)))
 
 
+    -- 4)
+    reducir :: Expr -> Expr
+    reducir (Var i) = error "Variable libre."
+    reducir (C i) = C i
+    reducir (Lam vt e) = Lam vt e
+    -- REGLA BETA
+    reducir (Apl (Lam vt e) et) 
+                        | length vt == length et = sustitucion e (crearSigma vt et)
+                        | otherwise = error "Cantidad de variables a sustituir no es igual a la cantidad de variables ligadas."
+    -- REGLA GAMMA
+    reducir (Apl (Apl (C i) et1) et2) = Apl (C i) (et1 ++ et2)
+    -- REGLA MU
+    reducir (Apl e et) = Apl (reducir e) et
+    -- REGLA EPSILON 0
+    reducir (Case (C i) rt) 
+                        | not(estaEnRamas i rt) = error "Case mal escrito: No se encuentra el constructor relacionado."
+                        | otherwise = obtenerExpresionEnRama i rt
+    --REGLA EPSILON I
+    reducir (Case (Apl (C i) et) rt)
+                        | not(estaEnRamas i rt) = error "Case mal escrito: No se encuentra el constructor relacionado."
+                        | length(obtenerLista i rt) == length et = sustitucion (obtenerExpresionEnRama i rt) (crearSigma (obtenerLista i rt) et) 
+    -- REGLA DELTA
+    reducir (Case e rt) = Case (reducir e) rt 
+    reducir (Rec e) = Apl e [Rec e]
+
     -- FUNC AUXILIARES
-    -- Hice mi propio lookup porque Maybe me queda muy incomodo
+    findAndRemoveId :: Sigma -> Id -> Sigma
+    findAndRemoveId [] i2 = []
+    findAndRemoveId ((i1,e):sig) i2 
+                            | i1 == i2 = sig
+                            | otherwise = (i1,e):findAndRemoveId sig i2
+
+    -- Pre: El largo de [Id] y [Exp] debe ser igual. Se cumple por ser utlizado solo 
+    -- en la regla Beta.
+    crearSigma :: [Id] -> [Expr] -> Sigma
+    crearSigma [] [] = []
+    crearSigma (i:is) (e:es) = (i,e):crearSigma is es
+
+    -- No quise usar lookup porque me incomoda el Maybe
+    estaEnRamas :: Id -> [Rama] -> Bool 
+    estaEnRamas i [] = False
+    estaEnRamas i ((id,resto):rt)
+                            | i == id = True 
+                            | otherwise = estaEnRamas i rt
+
+    obtenerLista :: Id -> [Rama] -> [Id]
+    obtenerLista  i [] = []
+    obtenerLista  i ((id,(l,et)):rt) 
+                                | i == id  = l
+                                | otherwise = obtenerLista i rt
+
+    --PRE: Se encuentra el Id en la lista de ramas.
+    obtenerExpresionEnRama :: Id -> [Rama] -> Expr
+    obtenerExpresionEnRama i ((id,(v,e)):rt)
+                                    | i == id = e
+                                    | otherwise = obtenerExpresionEnRama i rt
