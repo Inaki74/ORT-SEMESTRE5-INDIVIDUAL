@@ -29,7 +29,8 @@ module Tarea1 where
     -- 
     esValorDebil :: Expr -> Bool 
     esValorDebil (C i) = True
-    esValorDebil (Apl (C i) et) = True --TODO
+    esValorDebil (Apl (C i) []) = False
+    esValorDebil (Apl (C i) et) = True
     esValorDebil (Lam vt e) = True
     esValorDebil e = False
 
@@ -63,8 +64,8 @@ module Tarea1 where
     sustitucionRama :: Rama -> Sigma -> Rama
     sustitucionRama (i, (xt,e)) s = (i, (xt, sustitucion e (s -. xt)))
 
-
     -- 4)
+
     reducir :: Expr -> Expr
     reducir (Var i) = error "Variable libre."
     reducir (C i) = C i
@@ -85,9 +86,22 @@ module Tarea1 where
     reducir (Case (Apl (C i) et) rt)
                         | not(estaEnRamas i rt) = error "Case mal escrito: No se encuentra el constructor relacionado."
                         | length(obtenerLista i rt) == length et = sustitucion (obtenerExpresionEnRama i rt) (crearSigma (obtenerLista i rt) et) 
+                        | otherwise = error "Cantidad de variables a sustituir no es igual a la cantidad de variables ligadas."
     -- REGLA DELTA
     reducir (Case e rt) = Case (reducir e) rt 
     reducir (Rec e) = Apl e [Rec e]
+
+    -- 5)
+
+    evaluacionDebil :: Expr -> Expr
+    evaluacionDebil e 
+                    | esValorDebil e = e
+                    | otherwise = evaluacionDebil (reducir e)
+
+    -- 6)
+
+    evaluacionFuerte :: Expr -> Expr
+    evaluacionFuerte 
 
     -- FUNC AUXILIARES
     findAndRemoveId :: Sigma -> Id -> Sigma
