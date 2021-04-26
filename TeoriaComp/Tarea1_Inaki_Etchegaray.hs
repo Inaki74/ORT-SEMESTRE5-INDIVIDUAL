@@ -2,7 +2,7 @@
 -- Iñaki Etchegaray
 -- 240172
 ------------------------------
-{-# LANGUAGE TupleSections #-}
+
 module Tarea1 where
 
     -- 1) Declarar data que represente la sintaxis de Chi.
@@ -12,7 +12,7 @@ module Tarea1 where
 
     type Rama = (Id, ([Id], Expr))  -- La Rama
 
-    data Expr = 
+    data Expr =
             Var Id              -- x
         |   C Id                -- C
         |   Lam [Id] Expr       -- Expresion Lambda
@@ -27,7 +27,7 @@ module Tarea1 where
     -- Un valor debil es 
     -- Ejemplos de valores debiles:
     -- 
-    esValorDebil :: Expr -> Bool 
+    esValorDebil :: Expr -> Bool
     esValorDebil (C i) = True
     esValorDebil (Apl (C i) []) = False
     esValorDebil (Apl (C i) et) = True
@@ -57,8 +57,8 @@ module Tarea1 where
     sustitucion (Var i) s = lkup s i
     sustitucion (C i) s = C i
     sustitucion (Lam vt e) s = Lam vt (sustitucion e (s -. vt))
-    sustitucion (Apl e et) s = Apl (sustitucion e s)(map (\e -> sustitucion e s) et)
-    sustitucion (Case e rt) s = Case (sustitucion e s)(map (\r -> sustitucionRama r s) rt)
+    sustitucion (Apl e et) s = Apl (sustitucion e s)(map (`sustitucion` s) et)
+    sustitucion (Case e rt) s = Case (sustitucion e s)(map (`sustitucionRama` s) rt)
     sustitucion (Rec e) s = Rec (sustitucion e s)
 
     sustitucionRama :: Rama -> Sigma -> Rama
@@ -71,7 +71,7 @@ module Tarea1 where
     reducir (C i) = C i
     reducir (Lam vt e) = Lam vt e
     -- REGLA BETA
-    reducir (Apl (Lam vt e) et) 
+    reducir (Apl (Lam vt e) et)
                         | length vt == length et = sustitucion e (crearSigma vt et)
                         | otherwise = error "Cantidad de variables a sustituir no es igual a la cantidad de variables ligadas."
     -- REGLA GAMMA
@@ -79,34 +79,89 @@ module Tarea1 where
     -- REGLA MU
     reducir (Apl e et) = Apl (reducir e) et
     -- REGLA EPSILON 0
-    reducir (Case (C i) rt) 
+    reducir (Case (C i) rt)
                         | not(estaEnRamas i rt) = error "Case mal escrito: No se encuentra el constructor relacionado."
                         | otherwise = obtenerExpresionEnRama i rt
     --REGLA EPSILON I
     reducir (Case (Apl (C i) et) rt)
                         | not(estaEnRamas i rt) = error "Case mal escrito: No se encuentra el constructor relacionado."
-                        | length(obtenerLista i rt) == length et = sustitucion (obtenerExpresionEnRama i rt) (crearSigma (obtenerLista i rt) et) 
+                        | length(obtenerLista i rt) == length et = sustitucion (obtenerExpresionEnRama i rt) (crearSigma (obtenerLista i rt) et)
                         | otherwise = error "Cantidad de variables a sustituir no es igual a la cantidad de variables ligadas."
     -- REGLA DELTA
-    reducir (Case e rt) = Case (reducir e) rt 
+    reducir (Case e rt) = Case (reducir e) rt
     reducir (Rec e) = Apl e [Rec e]
 
     -- 5)
 
     evaluacionDebil :: Expr -> Expr
-    evaluacionDebil e 
+    evaluacionDebil e
                     | esValorDebil e = e
                     | otherwise = evaluacionDebil (reducir e)
 
+    -- Caso Apl Ci []
+    -- ->
     -- 6)
-
+    -- En la evaluacion fuerte:
+    -- Regla mas general:
+    -- Para evaluar fuertemente, primero evaluamos al valor debil, luego evaluamos fuertemente ese valor debil.
+    -- Es decir, el resultado de evaluar fuertemente a un e, es la evaluacion fuerte v de su evaluacion debil w.
+    -- Reglas mas especificas:
+    -- Los lambda y los constructores atomicos evaluan fuertemente a si mismos.
+    -- Para evaluar fuertemente un constructor con expresiones, se deben evaluar completamente todas las expresiones del constructor
     evaluacionFuerte :: Expr -> Expr
-    evaluacionFuerte 
+    evaluacionFuerte (C i) = C i
+    evaluacionFuerte (Lam vt e) = Lam vt e
+    evaluacionFuerte (Apl (C i) et)
+                            | null et = error "Al evaluar fuertemente, deberia de ser una lista no vacia."
+                            | otherwise = Apl (C i) (map evaluacionFuerte et)
+    evaluacionFuerte e = evaluacionFuerte (evaluacionDebil e)
+
+    -- 7)
+
+    --Not :: Bool -> Bool 
+    --Not b = Case b of {
+    --    True -> False;
+    --    False -> True;
+    --}
+
+    -- NOT
+
+    Not :: Expr
+    Not = Lam [Var "b"] (Case (Var "b") [
+        ("True", ([], C "False")), -- True -> False
+        ("False", ([], C "True"))  -- False -> True
+    ])
+
+    --Par :: N -> Bool
+    --Par n = Case n of {
+    --    O -> True 
+    --    S x -> not (Par x)
+    --}
+
+    -- PAR
+    Par :: Expr
+    Par = Lam [Var "n"] (Case (Var "n") [
+        ("O", ([], C "True")),
+        ("S",([Var "x"], Apl (Not) [Rec Par] ))
+    ])
+
+    -- Largo :: [a] -> N
+    -- Largo l = Case l of{
+    --     [] -> O
+    --     (l:ls) -> S (Largo ls)
+    -- }
+
+    -- LARGO
+    Largo :: Expr
+    Largo = Lam [Var "l"] (Case [Var "l"] [
+        ("[]", ([], "O")),
+        ("l:ls", ([Var "ls"], ))
+    ])
 
     -- FUNC AUXILIARES
     findAndRemoveId :: Sigma -> Id -> Sigma
     findAndRemoveId [] i2 = []
-    findAndRemoveId ((i1,e):sig) i2 
+    findAndRemoveId ((i1,e):sig) i2
                             | i1 == i2 = sig
                             | otherwise = (i1,e):findAndRemoveId sig i2
 
@@ -117,15 +172,15 @@ module Tarea1 where
     crearSigma (i:is) (e:es) = (i,e):crearSigma is es
 
     -- No quise usar lookup porque me incomoda el Maybe
-    estaEnRamas :: Id -> [Rama] -> Bool 
+    estaEnRamas :: Id -> [Rama] -> Bool
     estaEnRamas i [] = False
     estaEnRamas i ((id,resto):rt)
-                            | i == id = True 
+                            | i == id = True
                             | otherwise = estaEnRamas i rt
 
     obtenerLista :: Id -> [Rama] -> [Id]
     obtenerLista  i [] = []
-    obtenerLista  i ((id,(l,et)):rt) 
+    obtenerLista  i ((id,(l,et)):rt)
                                 | i == id  = l
                                 | otherwise = obtenerLista i rt
 
