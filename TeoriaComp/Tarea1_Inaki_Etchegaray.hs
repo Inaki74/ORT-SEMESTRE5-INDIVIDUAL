@@ -44,6 +44,7 @@ module Tarea1 where
 
     -- lkup busca la expresion en sigma asociada a i, sino devuelve i
     lkup :: Sigma -> Id -> Expr
+    lkup [] i = Var i 
     lkup ((is,e):sig) i
                     | is == i = e
                     | otherwise = Var i
@@ -67,26 +68,26 @@ module Tarea1 where
     -- 4)
 
     reducir :: Expr -> Expr
-    reducir (Var i) = error "Variable libre."
+    reducir (Var i) = error ("Variable libre." ++ i)
     reducir (C i) = C i
     reducir (Lam vt e) = Lam vt e
     -- REGLA BETA
     reducir (Apl (Lam vt e) et)
                         | length vt == length et = sustitucion e (crearSigma vt et)
-                        | otherwise = error "Cantidad de variables a sustituir no es igual a la cantidad de variables ligadas."
+                        | otherwise = error "(Reducir Beta): Cantidad de variables a sustituir no es igual a la cantidad de variables ligadas."
     -- REGLA GAMMA
     reducir (Apl (Apl (C i) et1) et2) = Apl (C i) (et1 ++ et2)
     -- REGLA MU
     reducir (Apl e et) = Apl (reducir e) et
     -- REGLA EPSILON 0
     reducir (Case (C i) rt)
-                        | not(estaEnRamas i rt) = error "Case mal escrito: No se encuentra el constructor relacionado."
+                        | not(estaEnRamas i rt) = error "(Reducir Epsilon 0): Case mal escrito: No se encuentra el constructor relacionado."
                         | otherwise = obtenerExpresionEnRama i rt
     --REGLA EPSILON I
     reducir (Case (Apl (C i) et) rt)
-                        | not(estaEnRamas i rt) = error "Case mal escrito: No se encuentra el constructor relacionado."
+                        | not(estaEnRamas i rt) = error "(Reducir Epsilon 1): Case mal escrito: No se encuentra el constructor relacionado."
                         | length(obtenerLista i rt) == length et = sustitucion (obtenerExpresionEnRama i rt) (crearSigma (obtenerLista i rt) et)
-                        | otherwise = error "Cantidad de variables a sustituir no es igual a la cantidad de variables ligadas."
+                        | otherwise = error "(Reducir Epsilon 1): Cantidad de variables a sustituir no es igual a la cantidad de variables ligadas."
     -- REGLA DELTA
     reducir (Case e rt) = Case (reducir e) rt
     reducir (Rec e) = Apl e [Rec e]
@@ -117,46 +118,63 @@ module Tarea1 where
     evaluacionFuerte e = evaluacionFuerte (evaluacionDebil e)
 
     -- 7)
+    -- venis bien, mirate las imagenes que sacaste con la consulta con Seba.
+    -- los constructores estan a cargo de programador
+    -- 
 
     --Not :: Bool -> Bool 
     --Not b = Case b of {
     --    True -> False;
     --    False -> True;
     --}
-
     -- NOT
-
-    Not :: Expr
-    Not = Lam [Var "b"] (Case (Var "b") [
-        ("True", ([], C "False")), -- True -> False
-        ("False", ([], C "True"))  -- False -> True
-    ])
+    chiNot :: Expr
+    chiNot = Lam ["b"] (Case (Var "b") [ 
+        ("True", ([], C "False")), 
+        ("False", ([], C "True"))
+        ])
 
     --Par :: N -> Bool
     --Par n = Case n of {
     --    O -> True 
     --    S x -> not (Par x)
     --}
-
     -- PAR
-    Par :: Expr
-    Par = Lam [Var "n"] (Case (Var "n") [
-        ("O", ([], C "True")),
-        ("S",([Var "x"], Apl (Not) [Rec Par] ))
-    ])
+    chiPar :: Expr
+    chiPar = Rec ( Lam ["par"] (Lam ["n"] (Case (Var "n") [
+        ("O", ([], C "True")), 
+        ("S",(["x"], Apl chiNot [Apl (Var "par") [Var "x"]]))
+        ])))
 
     -- Largo :: [a] -> N
     -- Largo l = Case l of{
-    --     [] -> O
-    --     (l:ls) -> S (Largo ls)
+    --    [] -> O
+    --    (x:xs) -> S (Largo xs)
     -- }
-
     -- LARGO
-    Largo :: Expr
-    Largo = Lam [Var "l"] (Case [Var "l"] [
-        ("[]", ([], "O")),
-        ("l:ls", ([Var "ls"], ))
-    ])
+    largo :: Expr
+    largo = Rec (Lam ["largo"] (Lam ["lis"] (Case (Var "lis") [
+        ("Empty", ([], C "O")), 
+        ("List", (["x", "xs"], Apl (C "S") [Apl (Var "largo") [Var "xs"]]))
+        ])))
+
+    -- filtrar :: [a] -> (a -> bool) -> [a]
+    -- filtrar l p = case l of{
+    --      [] -> [];
+    --      x:xs -> case p x of {
+    --          True -> x:(filtrar xs p);
+    --          False -> filtrar xs p;
+    --      };
+    -- }
+    -- FILTRAR
+    filtrar :: Expr
+    filtrar = Rec (Lam ["filtrar"] (Lam ["lis"] (Lam ["pred"] (Case (Var "lis") [
+          ("Empty", ([], C "Empty")),
+          ("List" , (["x", "xs"], Case (Apl (Var "pred") [Var "x"]) [
+                      ("True", ([], Apl (C "List") [Var "x", Apl (Var "filtrar") [Var "xs", Var "pred"]])),
+                      ("False", ([], Apl (Var "filtrar") [Var "xs", Var "pred"]))
+          ]))
+     ]))))
 
     -- FUNC AUXILIARES
     findAndRemoveId :: Sigma -> Id -> Sigma
