@@ -5,12 +5,10 @@
 
 module Tarea1 where
 
-    -- 1) Declarar data que represente la sintaxis de Chi.
-    -- e ::= x | C | \xtecho e | e etecho | case e rtecho | rec e
-    -- r ::= C xtecho e
+    -- 1)
     type Id = String
 
-    type Rama = (Id, ([Id], Expr))  -- La Rama
+    type Rama = (Id, ([Id], Expr))
 
     data Expr =
             Var Id              -- x
@@ -22,11 +20,6 @@ module Tarea1 where
         deriving Show
 
     -- 2) Definir un predicado que caracterice valores debiles.
-    -- Un valor es una expresion que no es evaluable, ya terminamos de evaluarla.
-    -- Son nombres nomas, strings.
-    -- Un valor debil es 
-    -- Ejemplos de valores debiles:
-    -- 
     esValorDebil :: Expr -> Bool
     esValorDebil (C i) = True
     esValorDebil (Apl (C i) []) = False
@@ -47,8 +40,9 @@ module Tarea1 where
     lkup [] i = Var i 
     lkup ((is,e):sig) i
                     | is == i = e
-                    | otherwise = Var i
+                    | otherwise = lkup sig i
 
+    -- El menos de sustitucion
     (-.) :: Sigma -> [Id] -> Sigma
     (-.) [] vt = []
     (-.) s [] = s
@@ -66,9 +60,8 @@ module Tarea1 where
     sustitucionRama (i, (xt,e)) s = (i, (xt, sustitucion e (s -. xt)))
 
     -- 4)
-
     reducir :: Expr -> Expr
-    reducir (Var i) = error ("Variable libre." ++ i)
+    reducir (Var i) = error "Variable libre."
     reducir (C i) = C i
     reducir (Lam vt e) = Lam vt e
     -- REGLA BETA
@@ -93,22 +86,12 @@ module Tarea1 where
     reducir (Rec e) = Apl e [Rec e]
 
     -- 5)
-
     evaluacionDebil :: Expr -> Expr
     evaluacionDebil e
                     | esValorDebil e = e
                     | otherwise = evaluacionDebil (reducir e)
 
-    -- Caso Apl Ci []
-    -- ->
     -- 6)
-    -- En la evaluacion fuerte:
-    -- Regla mas general:
-    -- Para evaluar fuertemente, primero evaluamos al valor debil, luego evaluamos fuertemente ese valor debil.
-    -- Es decir, el resultado de evaluar fuertemente a un e, es la evaluacion fuerte v de su evaluacion debil w.
-    -- Reglas mas especificas:
-    -- Los lambda y los constructores atomicos evaluan fuertemente a si mismos.
-    -- Para evaluar fuertemente un constructor con expresiones, se deben evaluar completamente todas las expresiones del constructor
     evaluacionFuerte :: Expr -> Expr
     evaluacionFuerte (C i) = C i
     evaluacionFuerte (Lam vt e) = Lam vt e
@@ -118,63 +101,51 @@ module Tarea1 where
     evaluacionFuerte e = evaluacionFuerte (evaluacionDebil e)
 
     -- 7)
-    -- venis bien, mirate las imagenes que sacaste con la consulta con Seba.
-    -- los constructores estan a cargo de programador
-    -- 
-
-    --Not :: Bool -> Bool 
-    --Not b = Case b of {
-    --    True -> False;
-    --    False -> True;
-    --}
-    -- NOT
     chiNot :: Expr
     chiNot = Lam ["b"] (Case (Var "b") [ 
         ("True", ([], C "False")), 
         ("False", ([], C "True"))
         ])
 
-    --Par :: N -> Bool
-    --Par n = Case n of {
-    --    O -> True 
-    --    S x -> not (Par x)
-    --}
-    -- PAR
     chiPar :: Expr
     chiPar = Rec ( Lam ["par"] (Lam ["n"] (Case (Var "n") [
         ("O", ([], C "True")), 
         ("S",(["x"], Apl chiNot [Apl (Var "par") [Var "x"]]))
         ])))
 
-    -- Largo :: [a] -> N
-    -- Largo l = Case l of{
-    --    [] -> O
-    --    (x:xs) -> S (Largo xs)
-    -- }
-    -- LARGO
-    largo :: Expr
-    largo = Rec (Lam ["largo"] (Lam ["lis"] (Case (Var "lis") [
+    chiLargo :: Expr
+    chiLargo = Rec (Lam ["largo"] (Lam ["lis"] (Case (Var "lis") [
         ("Empty", ([], C "O")), 
         ("List", (["x", "xs"], Apl (C "S") [Apl (Var "largo") [Var "xs"]]))
         ])))
 
-    -- filtrar :: [a] -> (a -> bool) -> [a]
-    -- filtrar l p = case l of{
-    --      [] -> [];
-    --      x:xs -> case p x of {
-    --          True -> x:(filtrar xs p);
-    --          False -> filtrar xs p;
-    --      };
-    -- }
-    -- FILTRAR
-    filtrar :: Expr
-    filtrar = Rec (Lam ["filtrar"] (Lam ["lis"] (Lam ["pred"] (Case (Var "lis") [
+    chiFiltrar :: Expr
+    chiFiltrar = Rec (Lam ["filtrar"] (Lam ["lis", "pred"] (Case (Var "lis") [
           ("Empty", ([], C "Empty")),
           ("List" , (["x", "xs"], Case (Apl (Var "pred") [Var "x"]) [
                       ("True", ([], Apl (C "List") [Var "x", Apl (Var "filtrar") [Var "xs", Var "pred"]])),
                       ("False", ([], Apl (Var "filtrar") [Var "xs", Var "pred"]))
           ]))
-     ]))))
+     ])))
+
+    -- VALORES
+    cero :: Expr
+    cero = C "O"
+
+    uno :: Expr
+    uno = Apl (C "S") [cero]
+
+    dos :: Expr
+    dos = Apl (C "S") [uno]
+
+    tres :: Expr
+    tres = Apl (C "S") [dos]
+
+    listaConCeroUnoDosYTres :: Expr
+    listaConCeroUnoDosYTres = Apl (C "List") [cero, 
+                                    Apl (C "List") [uno, 
+                                            Apl (C "List") [dos, 
+                                                    Apl (C "List") [tres, C "Empty"]]]]
 
     -- FUNC AUXILIARES
     findAndRemoveId :: Sigma -> Id -> Sigma
