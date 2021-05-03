@@ -101,6 +101,7 @@ module Tarea1 where
     evaluacionFuerte e = evaluacionFuerte (evaluacionDebil e)
 
     -- 7)
+    -- FUNCIONES
     chiNot :: Expr
     chiNot = Lam ["b"] (Case (Var "b") [ 
         ("True", ([], C "False")), 
@@ -128,6 +129,26 @@ module Tarea1 where
           ]))
      ])))
 
+    -- PRUEBAS
+    largoListaCeroUnoDosYTres :: Expr
+    largoListaCeroUnoDosYTres = evaluacionFuerte (Apl chiLargo [listaConCeroUnoDosYTres])
+    -- Resultado esperado: Apl (C "S") [Apl (C "S") [Apl (C "S") [Apl (C "S") [C "O"]]]]
+
+    filtrarParesListaCeroUnoDosYTres :: Expr
+    filtrarParesListaCeroUnoDosYTres = evaluacionFuerte (Apl chiFiltrar [listaConCeroUnoDosYTres, chiPar])
+    -- Resultado esperado: Apl (C "List") [C "O" , Apl (C "List") [Apl (C "S") [Apl (C "S") [C "O"]], C "Empty"]]
+    
+    -- PRUEBAS EXTRA
+    largoListaCeroUnoDosYTresFiltradaPares :: Expr
+    largoListaCeroUnoDosYTresFiltradaPares = evaluacionFuerte (Apl chiLargo [filtrarParesListaCeroUnoDosYTres])
+    -- Resultado esperado: Apl (C "S") [Apl (C "S") [C "O"]]
+
+    filtrarNotListaTruesYFalse :: Expr
+    filtrarNotListaTruesYFalse = evaluacionFuerte (Apl chiFiltrar [listaConTruesYFalse, chiNot]);
+    -- Resultado esperado: Apl (C "List") [C "False",C "Empty"]
+
+    -----------------------------------------------
+    -----------------------------------------------
     -- VALORES
     cero :: Expr
     cero = C "O"
@@ -146,6 +167,12 @@ module Tarea1 where
                                     Apl (C "List") [uno, 
                                             Apl (C "List") [dos, 
                                                     Apl (C "List") [tres, C "Empty"]]]]
+
+    listaConTruesYFalse :: Expr
+    listaConTruesYFalse = Apl (C "List") [C "True", 
+                                    Apl (C "List") [C "True", 
+                                            Apl (C "List") [C "False", 
+                                                    Apl (C "List") [C "True", C "Empty"]]]]
 
     -- FUNC AUXILIARES
     findAndRemoveId :: Sigma -> Id -> Sigma
