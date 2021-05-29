@@ -70,7 +70,7 @@ module Tarea2 where
                         -- Regla 1 de Ejecucion para While
                         |   otherwise = ejecutar 
                                             (ejecutar
-                                            (m << crearMemoria m (primPar(buscarEnRamas (primParValor(evaluacion m x)) rt)) (segParValor(evaluacion m x))) -- m'
+                                            (m << crearMemoria m (primPar(buscarEnRamas (primParValor(evaluacion m x)) rt)) (segParValor(evaluacion m x)))
                                             (segPar(buscarEnRamas (primParValor(evaluacion m x)) rt))) 
                                         (While x rt)
 
