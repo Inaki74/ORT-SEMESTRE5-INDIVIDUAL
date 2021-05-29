@@ -17,15 +17,15 @@ module Tarea2 where
             (:>) Prog Prog      -- Secuencia
         |   (:=) [Var] [Exp]    -- Asignacion
         |   Case Exp [Rama]     -- Seleccion
-        |   While Var [Rama]    -- Iteracion
+        |   While Exp [Rama]    -- Iteracion
         deriving Show
 
     type C = String
 
     type Rama = (C, ([Var], Prog))
-    
+
     -- 3)
-    data Val = 
+    data Val =
             Val (C ,[Val])     -- Valor
         |   Null
         deriving Show
@@ -36,7 +36,7 @@ module Tarea2 where
     -- Lookup
     (@@) :: Mem -> Var -> Val
     (@@) [] v1 = Null
-    (@@) ((v2,val):m) v1  
+    (@@) ((v2,val):m) v1
                     |   v1 == v2 = val
                     |   otherwise = m@@v1
 
@@ -59,10 +59,20 @@ module Tarea2 where
     -- Regla de Ejecucion para Secuencia
     ejecutar m (p1 :> p2) = ejecutar (ejecutar m p1) p2
     -- Regla de Ejecucion para Case
-    ejecutar m (Case x rt) = ejecutar (m << crearMemoria m (primPar(buscarEnRamas (primParValor(evaluacion m x)) rt)) (segParValor(evaluacion m x))) (segPar(buscarEnRamas (primParValor(evaluacion m x)) rt))
-    -- Regla 1 de Ejecucion para While
-    -- Regla 2 de Ejecucion para While
-
+    ejecutar m (Case x rt) = ejecutar
+                             (m << crearMemoria m (primPar(buscarEnRamas (primParValor(evaluacion m x)) rt)) (segParValor(evaluacion m x))) -- m'
+                             (segPar(buscarEnRamas (primParValor(evaluacion m x)) rt)) -- p
+                             -- Regla 1 de Ejecucion para While
+    
+    ejecutar m (While x rt)
+                        -- Regla 2 de Ejecucion para While
+                        |   isNothing (buscarEnRamas (primParValor(evaluacion m x)) rt) = m
+                        -- Regla 1 de Ejecucion para While
+                        |   otherwise = ejecutar 
+                                            (ejecutar
+                                            (m << crearMemoria m (primPar(buscarEnRamas (primParValor(evaluacion m x)) rt)) (segParValor(evaluacion m x))) -- m'
+                                            (segPar(buscarEnRamas (primParValor(evaluacion m x)) rt))) 
+                                        (While x rt)
 
     -- 7)
     notImp :: Prog
@@ -71,8 +81,30 @@ module Tarea2 where
                 ("False",([], ["b"] := [Apl "True" []]))
             ]
 
+    esParImp :: Prog
+    esParImp=   (["b", "m'"] := [Apl "True" [], Var "m"]) :>
+                While (Var "m'")[
+                    ("S", (["x"], notImp :> (["m'"] := [Var "x"])))
+                ]
+
+    largoListaImp :: Prog
+    largoListaImp = (["listaAux", "largo"] := [Var "l", Apl "O" []]) :>
+                    While (Var "listaAux")[
+                        ("Lista", (["x", "xs"], ["listaAux", "largo"] := [Var "xs", Apl "S" [Var "largo"]]))
+                    ]
+
+    invertListaImp :: Prog
+    invertListaImp =    (["listaAux", "resultado"] := [Var "l", Apl "Empty" []]) :>
+                        While (Var "listaAux")[
+                            ("Lista", (["x", "xs"], ["listaAux", "resultado"] := [Var "xs", Apl "List" [Var "x", Var "resultado"]]))
+                        ]
+
 
     -- FUNCIONES AUXILIARES
+    isNothing :: Maybe ([Var], Prog) -> Bool
+    isNothing Nothing = True 
+    isNothing o = False
+
     findAndReplace :: Mem -> (Var, Val) -> Mem
     findAndReplace [] v = [v]
     findAndReplace ((var1, val1):ms) (var2, val2)
@@ -85,10 +117,10 @@ module Tarea2 where
     crearMemoria m [] et = []
     crearMemoria m (var:vart) (e:et) = (var, e):crearMemoria m vart et
 
-    buscarEnRamas :: C -> [Rama] -> ([Var], Prog)
-    buscarEnRamas c [] = error ("buscarEnRamas: No se encontro una rama por el constructor: " ++ c)
-    buscarEnRamas c ((c2, dupla):rs)  
-                            |   c == c2 = dupla
+    buscarEnRamas :: C -> [Rama] -> Maybe ([Var], Prog)
+    buscarEnRamas c [] = Nothing
+    buscarEnRamas c ((c2, dupla):rs)
+                            |   c == c2 = Just dupla
                             |   otherwise = buscarEnRamas c rs
 
     primParValor :: Val -> C
@@ -99,17 +131,17 @@ module Tarea2 where
     segParValor (Val (a,b)) = b
     segParValor Null = error "Valor Null sin constructor en rama."
 
-    primPar :: (a, b) -> a
-    primPar (a,b) = a
+    primPar :: Maybe (a, b) -> a
+    primPar (Just (a,b)) = a
 
-    segPar :: (a, b) -> b
-    segPar (a,b) = b
+    segPar :: Maybe (a, b) -> b
+    segPar (Just (a,b)) = b
 
     -- TESTS
     --memoria
     memoria1 :: Mem
     memoria1 = [("x", Val("O",[])), ("y", Val("S", [Val ("O", [])]))]
-    
+
     memoria2 :: Mem
     memoria2 = [("a", Val("Empty",[])), ("b", Val("List", [Val ("O", []), Val ("Empty", [])]))]
 
@@ -154,7 +186,7 @@ module Tarea2 where
 
     pruebaUpdate2 :: Mem
     pruebaUpdate2 = memoria1 << memoria3 -- Un orden de esto: [("x", Val("O",[])), ("y", Val ("O", [])), ("a", Val ("O", []))]
-    
+
     pruebaUpdate3 :: Mem
     pruebaUpdate3 = memoria3 << memoria1 -- Un orden de esto: [("x", Val("O",[])), ("y", Val("S", [Val ("O", [])])), ("a", Val ("O", []))]
 
@@ -198,6 +230,14 @@ module Tarea2 where
         ("O", ([], asignacion1)),
         ("S", (["i1"], ["x"] := [Var "i1"]))
         ]
+
+    while1 :: Prog
+    while1= (["i"] := [Apl "S" [Apl "O" []]]):>
+            (["sum"] := [Apl "O" []]):>
+            While (Var "i")[
+                ("S", (["x"], (["i"] := [Var "x"]):>
+                              (["sum"] := [Apl "S" [Var "sum"]])))
+            ]
 
     -- Ejecuciones
     pruebaEjec1 :: Mem
