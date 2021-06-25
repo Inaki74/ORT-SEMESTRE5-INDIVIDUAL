@@ -99,6 +99,70 @@ module Tarea2 where
                             ("Lista", (["x", "xs"], ["listaAux", "resultado"] := [Var "xs", Apl "List" [Var "x", Var "resultado"]]))
                         ]
 
+    -- PRUEBAS
+    -- NOT
+    pruebaEjecNotImp1 :: Mem
+    pruebaEjecNotImp1 = ejecutar [] notImp -- error
+
+    pruebaEjecNotImp2 :: Mem
+    pruebaEjecNotImp2 = ejecutar [("a", Val ("O", []))] notImp -- error
+
+    pruebaEjecNotImp3 :: Mem
+    pruebaEjecNotImp3 = ejecutar [("b", Val ("True", []))] notImp -- [("b", Val ("False", []))]
+
+    pruebaEjecNotImp4 :: Mem
+    pruebaEjecNotImp4 = ejecutar [("b", Val ("False", []))] notImp -- [("b", Val ("True", []))]
+
+    -- ESPAR
+    pruebaEsParImp1 :: Mem
+    pruebaEsParImp1 = ejecutar [("m", Val ("O", []))] esParImp -- [("m",Val ("O",[])),("b",Val ("True",[])),("m'",Val ("O",[]))]
+
+    pruebaEsParImp2 :: Mem
+    pruebaEsParImp2 = ejecutar [("m", Val ("S", [Val ("O",[])]))] esParImp -- [("m",Val ("S",[Val ("O",[])])),("b",Val ("False",[])),("m'",Val ("O",[])),("x",Val ("O",[]))]
+
+    pruebaEsParImp3 :: Mem
+    pruebaEsParImp3 = ejecutar [("m", Val ("S", [Val ("S",[Val ("O",[])])]))] esParImp -- [("m",Val ("S",[Val ("S",[Val ("O",[])])])),("b",Val ("True",[])),("m'",Val ("O",[])),("x",Val ("O",[]))]
+
+    pruebaEsParImp4 :: Mem
+    pruebaEsParImp4 = ejecutar [("m", Val ("S", [Val ("S",[Val ("S",[Val ("S", [Val ("S", [Val ("O",[])])])])])]))] esParImp -- [("m",Val ("S",[Val ("S",[Val ("S",[Val ("S",[Val ("S",[Val ("O",[])])])])])])),("b",Val ("False",[])),("m'",Val ("O",[])),("x",Val ("O",[]))]
+
+    pruebaEsParImp5 :: Mem
+    pruebaEsParImp5 = ejecutar [] esParImp -- error
+
+    -- LARGO LISTA
+    pruebaLargoListaImp1 :: Mem
+    pruebaLargoListaImp1 = ejecutar [] largoListaImp -- error
+
+    pruebaLargoListaImp2 :: Mem
+    pruebaLargoListaImp2 = ejecutar [("l", Val ("Lista", [Val ("O",[]), Val ("Empty", [])]))] largoListaImp -- [("l", Val ("Lista", [Val ("O",[]), Val ("Empty", [])])), ("largo", Val ("S", [Val ("O", [])])), ...]
+
+    pruebaLargoListaImp3 :: Mem
+    pruebaLargoListaImp3 = ejecutar [("f", Val ("Lista", [Val ("O",[]), Val ("Empty", [])]))] largoListaImp -- error
+
+    pruebaLargoListaImp4 :: Mem
+    pruebaLargoListaImp4 = ejecutar [("l", Val ("Lista", [Val ("O",[]), Val ("Lista", [])]))] largoListaImp -- error
+
+    pruebaLargoListaImp5 :: Mem
+    pruebaLargoListaImp5 = ejecutar [("l", Val ("Lista", [Val ("O",[]), Val ("Lista", [Val ("O",[])])]))] largoListaImp -- error
+
+    pruebaLargoListaImp6 :: Mem
+    pruebaLargoListaImp6 = ejecutar [("l", Val ("Lista", [Val ("O",[]), Val ("Lista", [Val ("O",[]), Val ("Lista", [Val ("O", []),Val ("Lista", [Val ("O", []), Val ("Empty", [])])])])]))] largoListaImp -- [("l", Val ("Lista", [Val ("O",[]), Val ("Lista", [Val ("O",[]), Val ("Lista", [Val ("O", []),Val ("Lista", [Val ("O", []), Val ("Empty", [])])])])])),("largo", Val ("S", [Val ("S", [Val ("S", [Val ("S", [Val ("O",[])])])])])), ...]
+
+    pruebaLargoListaImp7 :: Mem
+    pruebaLargoListaImp7 = ejecutar [("l", Val ("Empty", []))] largoListaImp -- [("l", Val ("Empty", [])),("largo", Val ("O", [])) ...]
+
+    -- INVERT LISTA
+    pruebaInvertListaImp1 :: Mem
+    pruebaInvertListaImp1 = ejecutar [] invertListaImp -- error
+
+    pruebaInvertListaImp2 :: Mem
+    pruebaInvertListaImp2 = ejecutar [("l", Val ("Empty", []))] invertListaImp -- [("l", Val ("Empty", [])), ("resultado", Val ("Empty", []))]
+
+    pruebaInvertListaImp3 :: Mem
+    pruebaInvertListaImp3 = ejecutar [("l", Val ("Lista", [Val ("O", []), Val ("Empty", [])]))] invertListaImp -- [("l", Val ("Lista", [Val ("O", []), ("resultado", Val ("Lista", [Val ("O", [])]
+
+    pruebaInvertListaImp4 :: Mem
+    pruebaInvertListaImp4 = ejecutar [("l", Val ("Lista", [Val ("A", []), Val ("Lista", [Val ("L", []), Val ("Lista", [Val ("O", []), Val ("Lista", [Val ("H",[]), Val ("Empty",[])])])])]))] invertListaImp -- [("l",Val ("Lista",[Val ("A",[]),Val ("Lista",[Val ("L",[]),Val ("Lista",[Val ("O",[]),Val ("Lista",[Val ("H",[]),Val ("Empty",[])])])])])),("resultado",Val ("List",[Val ("H",[]),Val ("List",[Val ("O",[]),Val ("List",[Val ("L",[]),Val ("List",[Val ("A",[])]
 
     -- FUNCIONES AUXILIARES
     isNothing :: Maybe ([Var], Prog) -> Bool
@@ -137,7 +201,10 @@ module Tarea2 where
     segPar :: Maybe (a, b) -> b
     segPar (Just (a,b)) = b
 
-    -- TESTS
+
+
+
+    -- Otras Pruebas
     --memoria
     memoria1 :: Mem
     memoria1 = [("x", Val("O",[])), ("y", Val("S", [Val ("O", [])]))]
@@ -149,7 +216,6 @@ module Tarea2 where
     memoria3 = [("y", Val ("O", [])), ("a", Val ("O", []))]
 
     --expresiones
-
     expresion1 :: Exp
     expresion1 = Var "x"
 
@@ -249,17 +315,4 @@ module Tarea2 where
     pruebaEjec3 :: Mem
     pruebaEjec3 = ejecutar [] secuencia2 -- [("b", Val ("True", []))]
 
-    pruebaEjecNotImp1 :: Mem
-    pruebaEjecNotImp1 = ejecutar [] notImp -- error
-
-    pruebaEjecNotImp2 :: Mem
-    pruebaEjecNotImp2 = ejecutar [("a", Val ("O", []))] notImp -- error
-
-    pruebaEjecNotImp3 :: Mem
-    pruebaEjecNotImp3 = ejecutar [("b", Val ("O", []))] notImp -- error
-
-    pruebaEjecNotImp4 :: Mem
-    pruebaEjecNotImp4 = ejecutar [("b", Val ("True", []))] notImp -- [("b", Val ("False", []))]
-
-    pruebaEjecNotImp5 :: Mem
-    pruebaEjecNotImp5 = ejecutar [("b", Val ("False", []))] notImp -- [("b", Val ("True", []))]
+    
